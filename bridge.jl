@@ -11,11 +11,20 @@ kwargs = payload["kwargs"]
 args_dim = payload["argsdim"]
 kwargs_dim = payload["kwargsdim"]
 included_files = payload["included_files"]
+added_pkgs = payload["added_pkgs"]
 
 # 将 include 的 Julia 文件包含进来
 if included_files !== nothing
     for file in included_files
         include(file)
+    end
+end
+
+# 添加新的 Julia 包
+if added_pkgs !== nothing
+    import Pkg
+    for file in added_pkgs
+        Pkg.add(file)
     end
 end
 

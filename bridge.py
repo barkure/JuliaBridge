@@ -10,6 +10,7 @@ import numpy as np
 class JuliaBridge:
     def __init__(self):
         self._included_files = []
+        self._added_pkgs = []
         self._result = None  # 用于存储 Julia 函数的返回值
         self._index = 0  # 用于跟踪当前迭代的位置
 
@@ -33,7 +34,13 @@ class JuliaBridge:
     def __getattr__(self, name):
         def method(*args, **kwargs):
             # 调用 Julia 函数
-            if init_julia(name, *args, included_files=self._included_files, **kwargs):
+            if init_julia(
+                name,
+                *args,
+                included_files=self._included_files,
+                added_pkgs=self._added_pkgs,
+                **kwargs,
+            ):
                 result = asyncio.run(run_julia())
                 if result is not None:
                     return result  # 返回可迭代的结果（列表或元组）
@@ -49,8 +56,15 @@ class JuliaBridge:
         self._included_files.extend(modules)
         return self
 
+    def add_pkg(self, *pkgs):
+        # 添加包
+        self._added_pkgs.extend(pkgs)
+        return self
 
-def init_julia(func: str, *args, included_files=None, **kwargs) -> bool:
+
+def init_julia(
+    func: str, *args, included_files=None, added_pkgs=None, **kwargs
+) -> bool:
     try:
         # 将 numpy 数组转换为列表，并记录参数类型和维度数
         args_list = []
@@ -71,8 +85,9 @@ def init_julia(func: str, *args, included_files=None, **kwargs) -> bool:
         kwargs_type = {}
         kwargs_dim = {}  # 用于记录 kwargs 中 ndarray 的维数
         for k, v in kwargs.items():
-            if k == 'included_files':
-                continue  # 跳过 include 参数
+            # 跳过 include 模块和 added_pkgs
+            if k in ['included_files', 'added_pkgs']:
+                continue
             if isinstance(v, np.ndarray):
                 kwargs_list[k] = v.tolist()
                 kwargs_type[k] = 'ndarray'
@@ -92,6 +107,7 @@ def init_julia(func: str, *args, included_files=None, **kwargs) -> bool:
             'kwargstype': kwargs_type,
             'kwargsdim': kwargs_dim,  # 添加 kwargs 中 ndarray 的形状
             'included_files': included_files,  # 添加 include 模块
+            'added_pkgs': added_pkgs,  # 添加包
         }
 
         os.makedirs('.temp', exist_ok=True)
@@ -123,7 +139,9 @@ async def run_julia() -> Sequence | None:
                 if result is not None:
                     return result
                 else:
-                    raise ValueError("The 'result' key is missing or None in result.json")
+                    raise ValueError(
+                        "The 'result' key is missing or None in result.json"
+                    )
         except Exception as e:
             print(f'Error reading or processing result.json: {e}')
             return None
