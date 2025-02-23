@@ -1,5 +1,6 @@
+import Pkg
+Pkg.add("JSON")
 using JSON
-include("test.jl")
 
 # 解析 payload.json 的内容，获取 func, args, kwargs
 payload = JSON.parse(read(".temp/payload.json", String))
@@ -9,6 +10,14 @@ args = payload["args"]
 kwargs = payload["kwargs"]
 args_dim = payload["argsdim"]
 kwargs_dim = payload["kwargsdim"]
+included_files = payload["included_files"]
+
+# 将 include 的 Julia 文件包含进来
+if included_files !== nothing
+    for file in included_files
+        include(file)
+    end
+end
 
 # 转换 args 和 kwargs 中的 numpy 数组（ndarray）为 Julia 数组
 function convert_ndarray(arg, dim)

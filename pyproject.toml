@@ -4,9 +4,35 @@ version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = [
-    "matplotlib>=3.10.0",
-    "numpy>=2.2.3",
-    "scipy>=1.15.2",
-    "torch>=2.6.0",
+dependencies = ["matplotlib>=3.10.0", "numpy>=2.2.3", "scipy>=1.15.2"]
+
+[[tool.uv.index]]
+url = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple"
+default = true
+
+[tool.ruff]
+line-length = 120 # 代码最大行宽
+select = [ # 选择的规则
+    "F",
+    "E",
+    "W",
+    "UP",
+    "I",
 ]
+ignore = ["F401"] # 忽略的规则
+respect-gitignore = true # 是否尊重.gitignore文件
+
+
+[tool.ruff.format]
+quote-style = "single"          # 引号风格
+docstring-code-format = true    # docstring代码格式化
+docstring-code-line-length = 80 # docstring最大行宽
+
+[tool.ruff.lint.isort]
+case-sensitive = true             # 是否区分大小写
+combine-as-imports = true         # 是否合并as导入
+force-sort-within-sections = true # 是否强制在每个section中排序
+
+[tool.pyright]
+ignore = []  # 完全忽略
+exclude = [] # 排除的文件

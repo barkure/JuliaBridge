@@ -9,29 +9,48 @@ import numpy as np
 
 class JuliaBridge:
     def __init__(self):
-        # 初始化一个空列表，用于存储调用历史
-        self._data = []
+        self._included_files = []
+        self._result = None  # 用于存储 Julia 函数的返回值
+        self._index = 0  # 用于跟踪当前迭代的位置
 
     def __iter__(self):
-        # 返回 _data 的迭代器
-        return iter(self._data)
+        # 重置迭代器状态
+        self._index = 0
+        return self
+
+    def __next__(self):
+        if self._result is None:
+            raise StopIteration("No result available to iterate over")
+
+        if self._index >= len(self._result):
+            raise StopIteration  # 停止迭代
+
+        # 返回当前值并更新索引
+        value = self._result[self._index]
+        self._index += 1
+        return value
 
     def __getattr__(self, name):
         def method(*args, **kwargs):
-            # 记录调用历史
-            call_info = f"{name}(args={args}, kwargs={kwargs})"
-            self._data.append(call_info)
-
             # 调用 Julia 函数
-            if init_julia(name, *args, **kwargs):
-                return asyncio.run(run_julia())
+            if init_julia(name, *args, included_files=self._included_files, **kwargs):
+                result = asyncio.run(run_julia())
+                if result is not None:
+                    return result  # 返回可迭代的结果（列表或元组）
+                else:
+                    raise ValueError("Julia function returned None")
             else:
-                return None
+                raise ValueError("Failed to initialize Julia function")
 
         return method
 
+    def include(self, *modules):
+        # 添加 include 模块
+        self._included_files.extend(modules)
+        return self
 
-def init_julia(func: str, *args, **kwargs) -> bool:
+
+def init_julia(func: str, *args, included_files=None, **kwargs) -> bool:
     try:
         # 将 numpy 数组转换为列表，并记录参数类型和维度数
         args_list = []
@@ -52,6 +71,8 @@ def init_julia(func: str, *args, **kwargs) -> bool:
         kwargs_type = {}
         kwargs_dim = {}  # 用于记录 kwargs 中 ndarray 的维数
         for k, v in kwargs.items():
+            if k == "included_files":
+                continue  # 跳过 include 参数
             if isinstance(v, np.ndarray):
                 kwargs_list[k] = v.tolist()
                 kwargs_type[k] = "ndarray"
@@ -70,6 +91,7 @@ def init_julia(func: str, *args, **kwargs) -> bool:
             "kwargs": kwargs_list,
             "kwargstype": kwargs_type,
             "kwargsdim": kwargs_dim,  # 添加 kwargs 中 ndarray 的形状
+            "included_files": included_files,  # 添加 include 模块
         }
 
         os.makedirs(".temp", exist_ok=True)
@@ -95,7 +117,6 @@ async def run_julia() -> Optional[Sequence]:
 
     # 等待 result.json 文件生成，超时时间为 10 秒
     if await wait_for_result(600):
-        # 读取 result.json 文件
         try:
             with open(".temp/result.json", "r") as f:
                 result = json.load(f).get("result")
