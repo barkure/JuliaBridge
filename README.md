@@ -1,7 +1,7 @@
 [简体中文](https://github.com/barkure/JuliaBridge/blob/main/README_zh_cn.md) [English](https://github.com/barkure/JuliaBridge/blob/main/README.md)
 
 # JuliaBridge
-A Python package for seamless communication with Julia.
+A Python package for communication with Julia.
 
 To enhance your two-step operation for using the `JuliaBridge` package, we can add more details and best practices to ensure a smooth experience. Here's an improved version of your instructions:
 
@@ -35,18 +35,7 @@ To enhance your two-step operation for using the `JuliaBridge` package, we can a
    jb.eval('println("Hello from Julia")')
    ```
 
-2. **Passing data between Python and Julia**:
-   ```python
-   # Send data from Python to Julia
-   jb.eval('x = 10')  # Assign a value in Julia
-   jb.eval('println(x)')  # Print the value in Julia
-
-   # Retrieve data from Julia to Python
-   result = jb.eval('x + 5')  # Evaluate an expression in Julia
-   print(result)  # Output: 15
-   ```
-
-3. **Include Julia Scripts and Call Functions**:
+2. **Include Julia Scripts and Call Functions**:
    Save your Julia code in a file (e.g., `script.jl`) and run it from Python:
    ```python
    jb.include('script.jl')
@@ -54,7 +43,24 @@ To enhance your two-step operation for using the `JuliaBridge` package, we can a
    # Suppose the script.jl file contains a function say_hello
    jb.say_hello("Julia")'  # Call the say_hello function
    ```
-   
+
+3. **Passing data between Python and Julia**:
+
+   Create a `test.jl` with the following code:
+   ```julia
+   function plus(a::Int, b::Int)::Int
+      return a + b
+   end
+   ```
+
+   Use it in Python as follows:
+   ```python
+   julia.include("test.jl")
+
+   result = julia.eval("1 + 1")
+   print(result)  # 2
+   ```
+
 ---
 
 ## Best Practices

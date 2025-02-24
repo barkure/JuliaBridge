@@ -1,7 +1,7 @@
 [简体中文](https://github.com/barkure/JuliaBridge/blob/main/README_zh_cn.md) [English](https://github.com/barkure/JuliaBridge/blob/main/README.md)
 
 # JuliaBridge
-一个用于与 Julia 进行无缝通信的 Python 包。
+一个用于与 Julia 进行通信的 Python 包。
 
 为了增强你使用 `JuliaBridge` 包的两步操作，我们可以增加更多细节和最佳实践，确保顺畅的体验。以下是改进版的说明：
 
@@ -35,18 +35,8 @@
    jb.eval('println("Hello from Julia")')
    ```
 
-2. **在 Python 和 Julia 之间传递数据**：
-   ```python
-   # 从 Python 发送数据到 Julia
-   jb.eval('x = 10')  # 在 Julia 中赋值
-   jb.eval('println(x)')  # 在 Julia 中打印该值
+2. **包含 Julia 脚本并调用函数**：
 
-   # 从 Julia 获取数据到 Python
-   result = jb.eval('x + 5')  # 在 Julia 中计算表达式
-   print(result)  # 输出：15
-   ```
-
-3. **包含 Julia 脚本并调用函数**：
    将你的 Julia 代码保存到一个文件（例如 `script.jl`），并从 Python 运行：
    ```python
    jb.include('script.jl')
@@ -54,6 +44,24 @@
    # 假设 script.jl 文件中有一个函数 say_hello
    jb.say_hello("Julia")'  # 调用 say_hello 函数
    ```
+
+3. **在 Python 和 Julia 之间传递数据**：
+
+   创建一个 `test.jl`，并有如下代码：
+   ```julia
+   function plus(a::Int, b::Int)::Int
+      return a + b
+   end
+   ```
+
+   在 Python 使用：
+   ```python
+   julia.include("test.jl")
+
+   result = julia.eval("1 + 1")
+   print(result)  # 2
+   ```
+
 ---
 
 ## 最佳实践
