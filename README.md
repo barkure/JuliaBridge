@@ -36,6 +36,7 @@ To enhance your two-step operation for using the `JuliaBridge` package, we can a
    ```
 
 2. **Include Julia Scripts and Call Functions**:
+
    Save your Julia code in a file (e.g., `script.jl`) and run it from Python:
    ```python
    jb.include('script.jl')
