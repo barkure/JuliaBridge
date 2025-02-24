@@ -1,3 +1,5 @@
+[简体中文](./README_zh_cn.md) [English](./README.md)
+
 # JuliaBridge
 A Python package for seamless communication with Julia.
 
