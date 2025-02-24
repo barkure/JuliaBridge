@@ -49,10 +49,10 @@ To enhance your two-step operation for using the `JuliaBridge` package, we can a
 3. **Include Julia Scripts and Call Functions**:
    Save your Julia code in a file (e.g., `script.jl`) and run it from Python:
    ```python
-   jb.include('script.jl')  # Include the .jl file and execute it
+   jb.include('script.jl')
 
    # Suppose the script.jl file contains a function say_hello
-   jb.eval('say_hello("Julia")')  # Call the say_hello function
+   jb.say_hello("Julia")'  # Call the say_hello function
    ```
    
 ---

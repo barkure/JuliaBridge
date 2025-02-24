@@ -49,10 +49,10 @@
 3. **包含 Julia 脚本并调用函数**：
    将你的 Julia 代码保存到一个文件（例如 `script.jl`），并从 Python 运行：
    ```python
-   jb.include('script.jl')  # 包含 .jl 文件并执行
+   jb.include('script.jl')
 
    # 假设 script.jl 文件中有一个函数 say_hello
-   jb.eval('say_hello("Julia")')  # 调用 say_hello 函数
+   jb.say_hello("Julia")'  # 调用 say_hello 函数
    ```
 ---
 
