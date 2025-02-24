@@ -67,7 +67,7 @@ To enhance your two-step operation for using the `JuliaBridge` package, we can a
 ## Best Practices
 - **Keep Julia sessions alive**: If you plan to execute multiple commands, reuse the same `JuliaBridge` instance to avoid the overhead of starting a new Julia session each time.
 - **Use `jb.include` for large scripts**: For larger Julia scripts, save them in a `.jl` file and use `jb.include` to execute them.
-- **Optimize data transfer**: When passing large datasets between Python and Julia, consider using efficient formats like JSON or binary files.
+- **Optimize Data Transfer**: When large amounts of data need to be transferred to Julia, it is more efficient to save the data in formats such as JSON or binary files and then pass the file path to Julia for processing. This approach helps avoid the performance overhead of directly transferring data between Python and Julia.
 
 ---
 
