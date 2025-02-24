@@ -1,4 +1,4 @@
-[简体中文](./README_zh_cn.md) [English](./README.md)
+[简体中文](https://github.com/barkure/JuliaBridge/blob/main/README_zh_cn.md) [English](https://github.com/barkure/JuliaBridge/blob/main/README.md)
 
 # JuliaBridge
 A Python package for seamless communication with Julia.
