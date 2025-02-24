@@ -1,0 +1,1 @@
+{"func": "eval", "args": ["1 + 1"], "argstype": ["str"], "argsdim": [null], "kwargs": {}, "kwargstype": {}, "kwargsdim": {}, "included_files": ["test.jl"], "added_pkgs": []}

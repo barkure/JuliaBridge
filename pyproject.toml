@@ -1,38 +1,28 @@
 [project]
 name = "juliabridge"
 version = "0.1.0"
-description = "Add your description here"
+description = "A Python package for communicating with Julia."
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = ["matplotlib>=3.10.0", "numpy>=2.2.3", "scipy>=1.15.2"]
+dependencies = ["numpy>=2.2.3"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+Homepage = "https://github.com/barkure/JuliaBridge"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/juliabridge"]
+include = ["src/juliabridge/bridge.jl"]
 
 [[tool.uv.index]]
-url = "https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple"
-default = true
-
-[tool.ruff]
-line-length = 88 # 代码最大行宽
-select = [ # 选择的规则
-    "F",
-    "E",
-    "W",
-    "UP",
-    "I",
-]
-ignore = ["F401"] # 忽略的规则
-respect-gitignore = true # 是否尊重.gitignore文件
-
-
-[tool.ruff.format]
-quote-style = "single"          # 引号风格
-docstring-code-format = true    # docstring代码格式化
-docstring-code-line-length = 80 # docstring最大行宽
-
-[tool.ruff.lint.isort]
-case-sensitive = true             # 是否区分大小写
-combine-as-imports = true         # 是否合并as导入
-force-sort-within-sections = true # 是否强制在每个section中排序
-
-[tool.pyright]
-ignore = []  # 完全忽略
-exclude = [] # 排除的文件
+name = "juliabridge"
+url = "https://pypi.org/simple/"
+publish-url = "https://upload.pypi.org/legacy/"
