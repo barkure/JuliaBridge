@@ -4,3 +4,6 @@ dist/
 
 # Virtual environments
 .venv
+**/.temp
+
+

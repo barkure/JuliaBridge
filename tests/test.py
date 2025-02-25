@@ -3,7 +3,8 @@ from typing import Any
 from juliabridge import JuliaBridge
 
 # 创建 JuliaBridge 实例
-julia: Any = JuliaBridge(timeout=10,threads = 24)
+julia: Any = JuliaBridge(timeout=10)
+julia.add_option("-t", "5")  # 设置线程数
 
 # 测试 include
 julia.include("test.jl")

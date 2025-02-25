@@ -16,8 +16,20 @@ class JuliaBridge:
         self._result = None  # 用于存储 Julia 函数的返回值
         self._index = 0  # 用于跟踪当前迭代的位置
         self._temp_dir = os.path.join(os.path.dirname(__file__), ".temp")
-        os.makedirs(self._temp_dir, exist_ok=True)
         self._threads = threads  # 添加线程数量
+        self._options = {"-t": str(threads)} # 默认配置线程数
+        os.makedirs(self._temp_dir, exist_ok=True)
+
+    def add_option(self, option: str, value: str = None) -> 'JuliaBridge':
+        # 添加Julia命令行选项
+        self._options[option] = value
+        return self
+    
+    def remove_option(self, option: str) -> 'JuliaBridge':
+        # 移除 Julia 命令行选项
+        if option in self._options:
+            del self._options
+        return self
 
     def __iter__(self):
         # 重置迭代器状态
@@ -153,10 +165,16 @@ class JuliaBridge:
             script_dir, "bridge.jl"
         )  # 拼接为 bridge.jl 的路径
 
-        process = subprocess.Popen(
-            ["julia", "-t", str(self._threads), julia_script_path], stdout=None
-        )
-        process.wait()  # 等待进程结束
+        # 构建命令行参数列表
+        cmd = ["julia"]
+        for option, value in self._options.items():
+            cmd.append(option)
+            if value is not None:
+                cmd.append(value)
+        cmd.append(julia_script_path)
+
+        process = subprocess.Popen(cmd, stdout=None)
+        process.wait()
 
         if await self.__wait_for_result(timeout):
             try:
