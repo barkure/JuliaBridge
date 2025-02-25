@@ -11,5 +11,5 @@ function seconds_loop(seconds::Int)
 end
 
 function show_threads_num()
-    println(Threads.nthreads())
+    println("We are now using $(Threads.nthreads()) threads for Julia!")
 end
