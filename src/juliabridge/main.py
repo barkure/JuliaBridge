@@ -9,7 +9,7 @@ import numpy as np
 
 
 class JuliaBridge:
-    def __init__(self, timeout: int = 10):
+    def __init__(self, timeout: int = 10, threads: int = 8):
         self._included_files = []
         self._added_pkgs = []
         self._timeout = timeout
@@ -17,6 +17,7 @@ class JuliaBridge:
         self._index = 0  # 用于跟踪当前迭代的位置
         self._temp_dir = os.path.join(os.path.dirname(__file__), ".temp")
         os.makedirs(self._temp_dir, exist_ok=True)
+        self._threads = threads  # 添加线程数量
 
     def __iter__(self):
         # 重置迭代器状态
@@ -152,7 +153,9 @@ class JuliaBridge:
             script_dir, "bridge.jl"
         )  # 拼接为 bridge.jl 的路径
 
-        process = subprocess.Popen(["julia", julia_script_path], stdout=None)
+        process = subprocess.Popen(
+            ["julia", "-t", str(self._threads), julia_script_path], stdout=None
+        )
         process.wait()  # 等待进程结束
 
         if await self.__wait_for_result(timeout):

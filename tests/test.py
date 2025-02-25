@@ -3,7 +3,7 @@ from typing import Any
 from juliabridge import JuliaBridge
 
 # 创建 JuliaBridge 实例
-julia: Any = JuliaBridge(timeout=10)
+julia: Any = JuliaBridge(timeout=10,threads = 24)
 
 # 测试 include
 julia.include("test.jl")
@@ -14,6 +14,7 @@ print(result)  # 2
 
 # # 测试调用 Julia 函数
 julia.println("Hello, World!")
+julia.show_threads_num()
 
 a = julia.plus(2, 332)
 print(a)  # 334
