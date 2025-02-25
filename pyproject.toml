@@ -26,3 +26,31 @@ include = ["src/juliabridge/bridge.jl"]
 name = "juliabridge"
 url = "https://pypi.org/simple/"
 publish-url = "https://upload.pypi.org/legacy/"
+
+[tool.ruff]
+line-length = 120 # 代码最大行宽
+select = [ # 选择的规则
+    "F",
+    "E",
+    "W",
+    "UP",
+    "I",
+]
+ignore = ["F401"] # 忽略的规则
+extend-include = ["*.ipynb", "tests/*.py"] # 扩展包含的文件
+extend-exclude = ["__init__.py", "data_process"] # 扩展排除的文件
+respect-gitignore = true # 是否尊重.gitignore文件
+
+[tool.ruff.format]
+quote-style = "single"          # 引号风格
+docstring-code-format = true    # docstring代码格式化
+docstring-code-line-length = 80 # docstring最大行宽
+
+[tool.ruff.lint.isort]
+case-sensitive = true             # 是否区分大小写
+combine-as-imports = true         # 是否合并as导入
+force-sort-within-sections = true # 是否强制在每个section中排序
+
+[tool.pyright]
+ignore = ["data_process"] # 完全忽略
+exclude = [] # 排除的文件

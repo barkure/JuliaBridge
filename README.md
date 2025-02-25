@@ -14,6 +14,10 @@ To enhance your two-step operation for using the `JuliaBridge` package, we can a
 2. **Install Julia** (if not already installed):
    - Download and install Julia from [https://julialang.org/downloads/](https://julialang.org/downloads/).
    - Ensure Julia is added to your system's PATH so it can be accessed from the command line.
+   - Add the JSON package to the global environment in Julia.    
+   ```bash
+   julia -e using Pkg; Pkg.add("JSON")
+   ```
 
 3. **Install required Julia packages** (optional):
    If your Julia code relies on specific packages, you can install them using the Julia package manager:

@@ -9,3 +9,7 @@ function seconds_loop(seconds::Int)
         sleep(1)
     end
 end
+
+function show_threads_num()
+    println("We are now using $(Threads.nthreads()) threads for Julia!")
+end
