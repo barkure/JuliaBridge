@@ -63,7 +63,7 @@
    ```python
    julia.include("test.jl")
 
-   result = julia.eval("1 + 1")
+   result = julia.plus(1, 1)
    print(result)  # 2
    ```
 

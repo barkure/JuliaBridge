@@ -63,7 +63,7 @@ To enhance your two-step operation for using the `JuliaBridge` package, we can a
    ```python
    julia.include("test.jl")
 
-   result = julia.eval("1 + 1")
+   result = julia.plus(1, 1)
    print(result)  # 2
    ```
 

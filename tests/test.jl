@@ -4,9 +4,10 @@ end
 
 function seconds_loop(seconds::Int)
     start_time = time()
+    println("Start running...")
     while time() - start_time < seconds
-        println("Running...", time() - start_time, "s has passed.")
         sleep(1)
+        println("Running...", time() - start_time, "s has passed.")
     end
 end
 
