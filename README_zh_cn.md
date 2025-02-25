@@ -67,6 +67,10 @@
    print(result)  # 2
    ```
 
+4. **更多例子**:
+
+   请查看 [tests/](./tests/) 。
+
 ---
 
 ## 最佳实践
@@ -83,7 +87,7 @@
 
 2. **包安装问题**：
    - 如果 `pip install juliabridge` 失败，确保你使用的是最新版本的 `pip`：
-   
+
      ```bash
      pip install --upgrade pip
      ```

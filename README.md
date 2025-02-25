@@ -67,6 +67,9 @@ To enhance your two-step operation for using the `JuliaBridge` package, we can a
    print(result)  # 2
    ```
 
+4. **More xamples**:
+
+   Please check [tests/](./tests/).
 ---
 
 ## Best Practices
@@ -83,7 +86,7 @@ To enhance your two-step operation for using the `JuliaBridge` package, we can a
 
 2. **Package installation issues**:
    - If `pip install juliabridge` fails, ensure you have the latest version of `pip`:
-   
+
      ```bash
      pip install --upgrade pip
      ```
