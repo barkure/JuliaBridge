@@ -14,6 +14,11 @@
 2. **安装 Julia**（如果尚未安装）：
    - 从 [https://julialang.org/downloads/](https://julialang.org/downloads/) 下载并安装 Julia。
    - 确保将 Julia 添加到系统的 PATH 中，以便能够从命令行访问。
+   - 在 Julia 的全局环境中添加 JSON 包。
+   
+      ```bash
+      julia -e using Pkg; Pkg.add("JSON")
+      ```
 
 3. **安装所需的 Julia 包**（可选）：
    如果你的 Julia 代码依赖特定的包，可以使用 Julia 包管理器安装：
