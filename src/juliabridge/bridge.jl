@@ -23,7 +23,7 @@ end
 
 # 添加新的 Julia 包
 if added_pkgs !== nothing
-    import Pkg
+    using Pkg: Pkg
     for pkg in added_pkgs
         Pkg.add(pkg)
     end
