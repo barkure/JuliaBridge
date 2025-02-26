@@ -104,6 +104,8 @@ class JuliaBridge:
 
     def __get_full_path_from_caller(self, subpath: str) -> str:
         """根据调用者的路径获取文件的绝对路径"""
+        if os.path.isabs(subpath):
+            return subpath
         # 获取调用栈
         stack = inspect.stack()
         # 获取调用者的帧
