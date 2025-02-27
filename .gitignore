@@ -5,3 +5,6 @@ dist
 
 # Virtual environments
 .venv
+
+# Test-generated files
+tests/julia_venv_test

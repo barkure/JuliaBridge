@@ -1,18 +1,22 @@
 import asyncio
-from collections.abc import Coroutine, Sequence
+from collections.abc import Sequence
 import inspect
 import json
+import logging
 import os
 import subprocess
-from typing import Any, Optional
+from typing import Any
 
 import numpy as np
 
+# 配置日志
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 
 class JuliaBridge:
-    def __init__(self, timeout: int = 15):
+    def __init__(self, timeout: int = 15, project_dir: str | None = None):
         self._included_files = []
-        self._added_pkgs = []
         self._options = []
         self._timeout = timeout
         self._result = None  # 用于存储 Julia 函数的返回值
@@ -23,9 +27,33 @@ class JuliaBridge:
         self._temp_dir = os.path.join(os.path.dirname(__file__), '.temp')
         os.makedirs(self._temp_dir, exist_ok=True)
 
+        if project_dir is not None:
+            self._project_dir = self.__get_full_path_from_caller(project_dir)
+            self.__setup_env()
+        else:
+            self._project_dir = None
+
     def set_sync_mode(self, sync_mode: bool) -> None:
         """设置调用模式：True 为同步，False 为异步"""
         self._sync_mode = sync_mode
+
+    def __setup_env(self) -> None:
+        """设置虚拟环境，或者说安装相关的依赖包。因为 project_dir 下的 Project.toml 和 Manifest.toml
+        文件本身就代表了一种虚拟环境，我们现在做的只是安装其中的依赖包到 ~/.julia/packages 目录下。
+        """
+        try:
+            # 构建创建虚拟环境的 Julia 命令
+            if self._project_dir is not None:
+                command = ['julia', '--project=' + self._project_dir, '-e', 'using Pkg; Pkg.instantiate()']
+            else:
+                raise ValueError('project_dir is not set')
+
+            # 运行命令
+            subprocess.run(command, check=True)
+            logger.info(f'Dependencies of {self._project_dir} have been installed')
+        except subprocess.CalledProcessError as e:
+            logger.error(f'Error setting up environment: {e}')
+            raise RuntimeError(f'Failed to set up environment: {e}')
 
     def __iter__(self):
         # 重置迭代器状态
@@ -61,7 +89,6 @@ class JuliaBridge:
             func,
             *args,
             included_files=self._included_files,
-            added_pkgs=self._added_pkgs,
             **kwargs,
         ):
             try:
@@ -91,10 +118,33 @@ class JuliaBridge:
             self._included_files.append(full_path)
         return self
 
-    def add_pkg(self, *pkgs) -> 'JuliaBridge':
+    def add_pkg(self, *pkgs) -> None:
         # 添加包
-        self._added_pkgs.extend(pkgs)
-        return self
+        try:
+            for pkg in pkgs:
+                if self._project_dir is None:
+                    command = ['julia', '-e', f'using Pkg; Pkg.add("{pkg}")']
+                else:
+                    command = ['julia', '--project=' + self._project_dir, '-e', f'using Pkg; Pkg.add("{pkg}")']
+                subprocess.run(command, check=True)
+                logger.info(f'{pkg} has been added')
+        except subprocess.CalledProcessError as e:
+            logger.error(f'Error adding package: {e}')
+            raise RuntimeError(f'Failed to add package: {e}')
+
+    def remove_pkg(self, *pkgs) -> None:
+        # 移除包
+        try:
+            for pkg in pkgs:
+                if self._project_dir is None:
+                    command = ['julia', '-e', f'using Pkg; Pkg.rm("{pkg}")']
+                else:
+                    command = ['julia', '--project=' + self._project_dir, '-e', f'using Pkg; Pkg.rm("{pkg}")']
+                subprocess.run(command, check=True)
+                logger.info(f'{pkg} has been removed')
+        except subprocess.CalledProcessError as e:
+            logger.error(f'Error removing package: {e}')
+            raise RuntimeError(f'Failed to remove package: {e}')
 
     def terminate(self) -> None:
         # 设置终止标志
@@ -117,7 +167,7 @@ class JuliaBridge:
         # 拼接路径
         return os.path.join(caller_dir, subpath)
 
-    def __init_julia(self, func: str, *args, included_files=None, added_pkgs=None, **kwargs) -> bool:
+    def __init_julia(self, func: str, *args, included_files=None, **kwargs) -> bool:
         try:
             # 将 numpy 数组转换为列表，并记录参数类型和维度数
             args_list = []
@@ -138,8 +188,8 @@ class JuliaBridge:
             kwargs_type = {}
             kwargs_dim = {}  # 用于记录 kwargs 中 ndarray 的维数
             for k, v in kwargs.items():
-                # 跳过 include 模块和 added_pkgs
-                if k in ['included_files', 'added_pkgs']:
+                # 跳过 include 模块
+                if k in ['included_files']:
                     continue
                 if isinstance(v, np.ndarray):
                     kwargs_list[k] = v.tolist()
@@ -160,7 +210,6 @@ class JuliaBridge:
                 'kwargstype': kwargs_type,
                 'kwargsdim': kwargs_dim,  # 添加 kwargs 中 ndarray 的形状
                 'included_files': included_files,  # 添加 include 模块
-                'added_pkgs': added_pkgs,  # 添加包
             }
 
             with open(os.path.join(self._temp_dir, 'payload.json'), 'w') as f:
@@ -172,8 +221,11 @@ class JuliaBridge:
 
     async def __wait_for_result(self, timeout: int) -> bool:
         try:
-            # 使用 asyncio.wait_for 设定超时
-            result = await asyncio.wait_for(self.__wait_for_file(), timeout)
+            if timeout == 0:
+                return await self.__wait_for_file()  # 不设置超时
+            else:
+                # 使用 asyncio.wait_for 设定超时
+                result = await asyncio.wait_for(self.__wait_for_file(), timeout)
             if result:
                 print('\033[1;32mJulia process finished\033[0m')
             return result
@@ -191,14 +243,20 @@ class JuliaBridge:
         return True
 
     async def __run_julia(self, timeout: int) -> Sequence | None:
-        # 获取 main.py 文件所在目录，并构建 bridge.jl 的路径
-        script_dir = os.path.dirname(os.path.abspath(__file__))  # 获取当前脚本所在目录
-        # 构建命令行参数
-        command = ['julia'] + self._options + [os.path.join(script_dir, 'bridge.jl')]
+        # 构建 bridge.jl 的路径
+        bridge_script = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'bridge.jl')
+        command = ['julia']
+        # 构建使用指定环境运行的命令
+        if self._project_dir is not None:
+            command.extend(['--project=' + self._project_dir])
+        command.extend(self._options + [bridge_script])
 
         process = subprocess.Popen(command, stdout=None)
         try:
-            await asyncio.wait_for(self.__wait_for_file(), timeout)  # 等待进程结束，设置超时时间
+            if timeout == 0:
+                await self.__wait_for_file()
+            else:
+                await asyncio.wait_for(self.__wait_for_file(), timeout)  # 等待进程结束，设置超时时间
         except TimeoutError:
             process.kill()
             if not self._terminated_by_user:

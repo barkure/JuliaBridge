@@ -3,6 +3,7 @@ from typing import Any
 
 from juliabridge import JuliaBridge
 
+# --------------------普通测试--------------------
 # 创建 JuliaBridge 实例，设置超时时间为 15 秒
 jb: Any = JuliaBridge(timeout=15)
 
@@ -55,3 +56,15 @@ async def main() -> None:
 
 # 运行主函数
 asyncio.run(main())
+
+# --------------------测试虚拟环境--------------------
+jb2: Any = JuliaBridge(project_dir='./julia_venv_test')
+
+jb2.add_pkg('Plots')  # 此时应该出现 ./julia_venv_test/Project.toml 文件, 里面有 Plots 包
+jb2.add_pkg('MAT')
+jb2.remove_pkg('Plots')
+
+# --------------------测试不限时--------------------
+jb3: Any = JuliaBridge(timeout=0)
+jb3.include('test.jl')
+jb.seconds_loop(30)
