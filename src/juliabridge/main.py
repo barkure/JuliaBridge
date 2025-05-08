@@ -26,6 +26,7 @@ class JuliaBridge:
         self._sync_mode = True  # 默认使用同步模式
         self._temp_dir = os.path.join(os.path.dirname(__file__), '.temp')
         os.makedirs(self._temp_dir, exist_ok=True)
+        self._modules_to_use = []  # 用于存储需要 using 的模块列表
 
         if project_dir is not None:
             self._project_dir = self.__get_full_path_from_caller(project_dir)
@@ -103,6 +104,21 @@ class JuliaBridge:
         else:
             raise ValueError('Failed to initialize Julia function')
 
+    def use(self, *modules: str) -> 'JuliaBridge':
+        """
+        添加一个或多个模块名，这些模块将在每次调用 Julia 函数前被 using。
+        返回 self，以便链式调用。
+        """
+        for module in modules:  # 'module' here is correctly inferred as str by Pylance
+            if not isinstance(module, str) or not module:
+                logger.warning(f"Invalid module name '{module}', must be a non-empty string.")
+                continue
+            # Pylance 误报：在这一行忽略类型检查错误
+            if module not in self._modules_to_use:  # type: ignore
+                self._modules_to_use.append(module)  # type: ignore
+                logger.info(f"Added module '{module}' to be used in Julia process.")
+        return self
+
     def add_option(self, *options: str) -> None:
         self._options.extend(options)
 
@@ -168,6 +184,10 @@ class JuliaBridge:
         return os.path.join(caller_dir, subpath)
 
     def __init_julia(self, func: str, *args, included_files=None, **kwargs) -> bool:
+        """
+        准备调用 Julia 函数的 payload 数据，包括函数名、参数、类型、形状，
+        以及需要 using 的模块列表和需要 include 的文件列表。
+        """
         try:
             # 将 numpy 数组转换为列表，并记录参数类型和维度数
             args_list = []
@@ -210,6 +230,7 @@ class JuliaBridge:
                 'kwargstype': kwargs_type,
                 'kwargsdim': kwargs_dim,  # 添加 kwargs 中 ndarray 的形状
                 'included_files': included_files,  # 添加 include 模块
+                'modules': self._modules_to_use,  # 添加 using 模块
             }
 
             with open(os.path.join(self._temp_dir, 'payload.json'), 'w') as f:
@@ -219,66 +240,78 @@ class JuliaBridge:
             print(e)
             return False
 
-    async def __wait_for_result(self, timeout: int) -> bool:
-        try:
-            if timeout == 0:
-                return await self.__wait_for_file()  # 不设置超时
-            else:
-                # 使用 asyncio.wait_for 设定超时
-                result = await asyncio.wait_for(self.__wait_for_file(), timeout)
-            if result:
-                print('\033[1;32mJulia process finished\033[0m')
-            return result
-        except TimeoutError:
-            if not self._terminated_by_user:
-                print('\033[1;31mTimeout reached\033[0m')
-            return False
-
-    async def __wait_for_file(self):
-        # 检查文件是否存在
-        while not os.path.exists(os.path.join(self._temp_dir, 'finished')):
+    async def _check_files(self, finished_path: str, error_log_path: str) -> str:
+        while True:
+            if os.path.exists(finished_path):
+                return 'finished'
+            if os.path.exists(error_log_path):
+                return 'error'
             if self._terminate_flag:
-                return False
+                return 'terminated'
             await asyncio.sleep(0.1)
-        return True
+
+    async def __wait_for_result(self, timeout: int) -> str:
+        """
+        同时等待 finished 文件和 error.log 文件的出现。
+        返回状态字符串：
+        - "finished" 表示成功完成
+        - "error" 表示发生错误
+        - "timeout" 表示超时
+        """
+        finished_path = os.path.join(self._temp_dir, 'finished')
+        error_log_path = os.path.join(self._temp_dir, 'error.log')
+
+        try:
+            # 使用 asyncio.wait_for 设定超时
+            return await asyncio.wait_for(self._check_files(finished_path, error_log_path), timeout=timeout)
+        except TimeoutError:
+            return 'timeout'
+        except Exception as e:
+            # 捕获其他异常并返回一个默认值
+            logger.error(f'Unexpected error in __wait_for_result: {e}')
+            return 'error'
 
     async def __run_julia(self, timeout: int) -> Sequence | None:
+        """
+        运行 Julia 脚本并处理结果或错误。
+        """
         # 构建 bridge.jl 的路径
         bridge_script = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'bridge.jl')
         command = ['julia']
-        # 构建使用指定环境运行的命令
         if self._project_dir is not None:
             command.extend(['--project=' + self._project_dir])
         command.extend(self._options + [bridge_script])
 
         process = subprocess.Popen(command, stdout=None)
         try:
-            if timeout == 0:
-                await self.__wait_for_file()
-            else:
-                await asyncio.wait_for(self.__wait_for_file(), timeout)  # 等待进程结束，设置超时时间
-        except TimeoutError:
-            process.kill()
-            if not self._terminated_by_user:
-                print('\033[1;35mJulia process killed due to timeout\033[0m')
-            raise TimeoutError('result.json not found')
+            # 等待结果或错误
+            status = await self.__wait_for_result(timeout)
 
-        if await self.__wait_for_result(timeout):
-            try:
-                with open(os.path.join(self._temp_dir, 'result.json')) as f:
+            if status == 'finished':
+                # 读取结果文件
+                result_path = os.path.join(self._temp_dir, 'result.json')
+                with open(result_path) as f:
                     result = json.load(f).get('result')
-                    return result
-            except Exception as e:
-                if not self._terminated_by_user:
-                    print(f'Error reading or processing result.json: {e}')
-            finally:
-                # 删除 result.json, finished
-                if os.path.exists(os.path.join(self._temp_dir, 'result.json')):
-                    os.remove(os.path.join(self._temp_dir, 'result.json'))
-                if os.path.exists(os.path.join(self._temp_dir, 'finished')):
-                    os.remove(os.path.join(self._temp_dir, 'finished'))
-        else:
+                return result
+
+            elif status == 'error':
+                # 读取错误日志
+                error_log_path = os.path.join(self._temp_dir, 'error.log')
+                with open(error_log_path) as f:
+                    error_message = f.read()
+                raise RuntimeError(f'Julia process encountered an error:\n{error_message}')
+
+            elif status == 'timeout':
+                raise TimeoutError('Julia process timed out')
+
+            elif status == 'terminated':
+                raise RuntimeError('Julia process was terminated by user')
+
+        finally:
+            # 清理临时文件
+            for file_name in ['result.json', 'finished', 'error.log']:
+                file_path = os.path.join(self._temp_dir, file_name)
+                if os.path.exists(file_path):
+                    os.remove(file_path)
+            # 确保进程被终止
             process.kill()
-            if not self._terminated_by_user:
-                print('\033[1;35mJulia process killed due to timeout\033[0m')
-            raise TimeoutError('result.json not found')
